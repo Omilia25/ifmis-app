@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 8,
     padding: 8,
-    borderWidth: 1,
-    borderColor: 'green', // Red outline color
+    borderWidth: 0.9,
+    borderColor: 'green', // Red outline colour
     borderRadius: 8,
     width: 150,
     alignSelf: 'center'
