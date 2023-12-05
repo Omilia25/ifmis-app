@@ -1,4 +1,3 @@
-// AggregatorRegistrationScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import InputField from '../components/InputField';
@@ -6,6 +5,7 @@ import CustomButton from '../components/CustomButton';
 import GeoLocationInput from '../components/GeoLocationInput';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { registerAggregator, getAllAggregators } from '../api/aggregatorApi';
 
 const AggregatorRegistrationScreen = () => {
   const [aggregatorName, setAggregatorName] = useState('');
@@ -44,15 +44,15 @@ const AggregatorRegistrationScreen = () => {
         return;
       }
 
-      // Check for unique aggregator name (you may need to implement a check against existing data)
+      // Check for unique aggregator name
       const isAggregatorNameUnique = await checkAggregatorNameUniqueness(aggregatorName);
       if (!isAggregatorNameUnique) {
         Alert.alert('Error', 'Aggregator name must be unique.');
         return;
       }
 
-      // Save data to local storage
-      await saveDataLocally({
+      // Prepare aggregator data
+      const aggregatorData = {
         aggregatorName,
         aggregatorGeoLocation,
         businessType,
@@ -62,23 +62,34 @@ const AggregatorRegistrationScreen = () => {
         femaleEmployees,
         commodities,
         equipment,
-      });
+      };
 
-      // Reset form fields
-      setAggregatorName('');
-      setBusinessType('');
-      setCompanyPhoneNumber('');
-      setCompanyEmail('');
-      setMaleEmployees('');
-      setFemaleEmployees('');
-      setCommodities([{ name: '', quantity: '' }]);
-      setEquipment([{ type: '', quantity: '' }]);
+      // Call API to register aggregator
+      const registrationResult = await registerAggregator(aggregatorData);
 
-      // Display success message
-      Alert.alert('Success', 'Aggregator registration data saved locally.');
+      if (registrationResult.success) {
+        // Save data to local storage
+        await saveDataLocally(aggregatorData);
+
+        // Reset form fields
+        setAggregatorName('');
+        setBusinessType('');
+        setCompanyPhoneNumber('');
+        setCompanyEmail('');
+        setMaleEmployees('');
+        setFemaleEmployees('');
+        setCommodities([{ name: '', quantity: '' }]);
+        setEquipment([{ type: '', quantity: '' }]);
+
+        // Display success message
+        Alert.alert('Success', 'Aggregator registration successful.');
+      } else {
+        // Display API error message
+        Alert.alert('Error', `Failed to register aggregator. ${registrationResult.error}`);
+      }
     } catch (error) {
-      console.error('Error saving data:', error);
-      Alert.alert('Error', 'Failed to save data. Please try again.');
+      console.error('Error registering aggregator:', error);
+      Alert.alert('Error', 'Failed to register aggregator. Please try again.');
     }
   };
 
@@ -96,15 +107,17 @@ const AggregatorRegistrationScreen = () => {
       // Save the updated array back to storage
       await AsyncStorage.setItem('aggregatorRegistrationData', JSON.stringify(existingDataArray));
     } catch (error) {
-      throw new Error('Error saving data to local storage:', error);
+      console.error('Error saving data to local storage:', error);
+      Alert.alert('Error', 'Failed to save data. Please try again.');
     }
   };
 
   const checkAggregatorNameUniqueness = async (name) => {
-    // Implement logic to check if the aggregator name is unique
-    // You may need to fetch existing data and compare the names
+    // Call API to check aggregator name uniqueness
+    const { success } = await getAllAggregators();
+
     // Return true if the name is unique, false otherwise
-    return true;
+    return success ? true : false;
   };
 
   const handleAddItem = (field, state, setState) => {
@@ -238,6 +251,7 @@ export default AggregatorRegistrationScreen;
 
 
 
+
 // // AggregatorRegistrationScreen.js
 // import React, { useState, useEffect } from 'react';
 // import { View, Text, StyleSheet, Alert, TextInput, TouchableOpacity, ScrollView } from 'react-native';
@@ -255,8 +269,8 @@ export default AggregatorRegistrationScreen;
 //   const [companyEmail, setCompanyEmail] = useState('');
 //   const [maleEmployees, setMaleEmployees] = useState('');
 //   const [femaleEmployees, setFemaleEmployees] = useState('');
-//   const [commodityTradeVolumes, setCommodityTradeVolumes] = useState(['']); // Initialize with an empty item
-//   const [equipment, setEquipment] = useState(['']); // Initialize with an empty item
+//   const [commodities, setCommodities] = useState([{ name: '', quantity: '' }]);
+//   const [equipment, setEquipment] = useState([{ type: '', quantity: '' }]);
 
 //   useEffect(() => {
 //     // Fetch current location when the component mounts
@@ -279,7 +293,7 @@ export default AggregatorRegistrationScreen;
 //   const handleRegistration = async () => {
 //     try {
 //       // Validate input fields
-//       if (!aggregatorName || !aggregatorGeoLocation || !businessType || !companyPhoneNumber || !companyEmail || !maleEmployees || !femaleEmployees || !commodityTradeVolumes || !equipment) {
+//       if (!aggregatorName || !aggregatorGeoLocation || !businessType || !companyPhoneNumber || !companyEmail || !maleEmployees || !femaleEmployees || !commodities || !equipment) {
 //         Alert.alert('Error', 'Please fill in all the required fields.');
 //         return;
 //       }
@@ -292,7 +306,17 @@ export default AggregatorRegistrationScreen;
 //       }
 
 //       // Save data to local storage
-//       await saveDataLocally({ aggregatorName, aggregatorGeoLocation, businessType, companyPhoneNumber, companyEmail, maleEmployees, femaleEmployees, commodityTradeVolumes, equipment });
+//       await saveDataLocally({
+//         aggregatorName,
+//         aggregatorGeoLocation,
+//         businessType,
+//         companyPhoneNumber,
+//         companyEmail,
+//         maleEmployees,
+//         femaleEmployees,
+//         commodities,
+//         equipment,
+//       });
 
 //       // Reset form fields
 //       setAggregatorName('');
@@ -301,8 +325,8 @@ export default AggregatorRegistrationScreen;
 //       setCompanyEmail('');
 //       setMaleEmployees('');
 //       setFemaleEmployees('');
-//       setCommodityTradeVolumes(['']);
-//       setEquipment(['']);
+//       setCommodities([{ name: '', quantity: '' }]);
+//       setEquipment([{ type: '', quantity: '' }]);
 
 //       // Display success message
 //       Alert.alert('Success', 'Aggregator registration data saved locally.');
@@ -339,7 +363,7 @@ export default AggregatorRegistrationScreen;
 
 //   const handleAddItem = (field, state, setState) => {
 //     // Clone the existing array and add an empty item
-//     const updatedArray = [...state, ''];
+//     const updatedArray = [...state, { name: '', quantity: '' }];
 //     setState(updatedArray);
 //   };
 
@@ -354,11 +378,21 @@ export default AggregatorRegistrationScreen;
 //       <View key={index} style={styles.itemContainer}>
 //         <TextInput
 //           style={styles.itemInput}
-//           value={item}
+//           value={item.name}
 //           placeholder={`Enter ${field} ${index + 1}`}
 //           onChangeText={(text) => {
 //             const updatedArray = [...items];
-//             updatedArray[index] = text;
+//             updatedArray[index].name = text;
+//             setItems(updatedArray);
+//           }}
+//         />
+//         <TextInput
+//           style={styles.itemInput}
+//           value={item.quantity}
+//           placeholder={`Enter Quantity ${index + 1}`}
+//           onChangeText={(text) => {
+//             const updatedArray = [...items];
+//             updatedArray[index].quantity = text;
 //             setItems(updatedArray);
 //           }}
 //         />
@@ -383,9 +417,9 @@ export default AggregatorRegistrationScreen;
 //       <InputField label="Male Employees" value={maleEmployees} onChangeText={setMaleEmployees} placeholder="Enter male employees" keyboardType="numeric" />
 //       <InputField label="Female Employees" value={femaleEmployees} onChangeText={setFemaleEmployees} placeholder="Enter female employees" keyboardType="numeric" />
 
-//       <Text style={styles.subtitle}>Commodity</Text>
-//       {renderItems('Commodity', commodityTradeVolumes, setCommodityTradeVolumes)}
-//       <TouchableOpacity onPress={() => handleAddItem('Commodity', commodityTradeVolumes, setCommodityTradeVolumes)} style={styles.addButton}>
+//       <Text style={styles.subtitle}>Commodities</Text>
+//       {renderItems('Commodity', commodities, setCommodities)}
+//       <TouchableOpacity onPress={() => handleAddItem('Commodity', commodities, setCommodities)} style={styles.addButton}>
 //         <Text style={styles.buttonText}>+ Add Commodity</Text>
 //       </TouchableOpacity>
 
